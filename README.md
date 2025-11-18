@@ -14,14 +14,14 @@ npm install @langchain/langgraph @langchain/openai langchain
 1. Create a new project at [Supabase](https://app.supabase.com)
 2. Go to your project settings → API
 3. Copy your project URL and anon/public key
-4. Get your OpenAI API key from [OpenAI Platform](https://platform.openai.com/api-keys)
-5. Create a `.env.local` file in the root directory:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-OPENAI_API_KEY=your_openai_api_key
-```
+4. Get your Google API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+5. (Optional) Set up LangSmith for tracing:
+   - Sign up at [LangSmith](https://smith.langchain.com)
+   - Go to Settings → API Keys
+   - Create an API key
+6. Create a `.env.local` file in the root directory:
+   - Copy `.env.example` to `.env.local`: `cp .env.example .env.local`
+   - Fill in your actual API keys and values
 
 ### 3. Run the Development Server
 
@@ -31,15 +31,25 @@ npm run dev
 
 The app will be available at [http://localhost:3000](http://localhost:3000)
 
+### LangSmith Tracing
+
+When LangSmith is configured, all conversations are automatically traced. This includes:
+- **LLM Calls**: Input prompts, responses, token usage, and latency
+- **LangGraph State**: State transitions and node executions
+- **Errors**: Full error traces and debugging information
+- **Performance Metrics**: Response times and token costs
+
+View your traces at [LangSmith Dashboard](https://smith.langchain.com) under the project name specified in `LANGCHAIN_PROJECT`.
+
 ## Features
 - **LangGraph Chat Agent**: Simple chat agent that maintains conversation history in its state
-- **ChatGPT Integration**: Uses OpenAI's GPT models (gpt-4o-mini by default) for responses
+- **Google Gemini Integration**: Uses Google's Gemini models (gemini-2.5-flash by default) for responses
 - **Conversation History**: Automatically stores and uses conversation context for context-aware replies
+- **LangSmith Tracing**: All LLM calls and LangGraph state transitions are automatically traced (when configured)
 - **User Authentication**: Secure authentication via Supabase
 - **Modern UI**: Clean, responsive chat interface with dark mode support
 - Future features:
   - Multi-agent system with specialized agents (Weather, News, etc.)
-  - LangSmith tracing and debugging
   - Live deployment on Vercel
 
 ## Tools
