@@ -6,7 +6,7 @@
 
 ```bash
 npm install @supabase/supabase-js @supabase/ssr
-npm install @langchain/langgraph @langchain/openai langchain
+npm install @langchain/langgraph @langchain/google-genai langchain
 ```
 
 ### 2. Configure Environment Variables
@@ -48,17 +48,59 @@ View your traces at [LangSmith Dashboard](https://smith.langchain.com) under the
 - **LangSmith Tracing**: All LLM calls and LangGraph state transitions are automatically traced (when configured)
 - **User Authentication**: Secure authentication via Supabase
 - **Modern UI**: Clean, responsive chat interface with dark mode support
-- Future features:
-  - Multi-agent system with specialized agents (Weather, News, etc.)
-  - Live deployment on Vercel
+
+## Testing Conversation Memory
+
+To verify that the chatbot remembers past messages:
+
+1. Start a conversation and ask: "My name is Alice"
+2. In a follow-up message, ask: "What's my name?"
+3. The bot should respond with "Alice" or reference your earlier message
+
+The conversation history is maintained in the LangGraph state and passed to the LLM with each request, allowing the bot to recall previous messages in the conversation.
+
+## Deployment to Vercel
+
+### Prerequisites
+- A GitHub account
+- A Vercel account (free tier available)
+
+### Steps
+
+1. **Push to GitHub**:
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit: Chatbot with LangGraph and Supabase"
+   git branch -M main
+   git remote add origin https://github.com/yourusername/your-repo-name.git
+   git push -u origin main
+   ```
+
+2. **Deploy to Vercel**:
+   - Go to [Vercel](https://vercel.com) and sign in
+   - Click "Add New Project"
+   - Import your GitHub repository
+   - Configure environment variables:
+     - `NEXT_PUBLIC_SUPABASE_URL`
+     - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+     - `GOOGLE_API_KEY`
+     - `LANGCHAIN_TRACING_V2` (optional)
+     - `LANGCHAIN_API_KEY` (optional)
+     - `LANGCHAIN_PROJECT` (optional)
+   - Click "Deploy"
+
+3. **Verify Deployment**:
+   - Visit your live URL (e.g., `https://your-project.vercel.app`)
+   - Log in with Supabase authentication
+   - Test the chatbot and verify conversation memory works
+   - Check LangSmith dashboard for traces (if configured)
 
 ## Tools
-- **Next.js**: Build the app’s frontend.
+- **Next.js**: Build the app's frontend.
 - **Supabase**: Handle authentication and data storage.
-- **LangGraph**: Power the multi-agent chatbot logic.
+- **LangGraph**: Power the chatbot logic with state management.
+- **Google Gemini**: LLM for generating responses.
 - **LangSmith**: Trace and debug LLM interactions.
-- **Vercel AI SDK**: Add pre-built AI UI components.
 - **Vercel**: Host your live app.
 - **GitHub**: Track your progress with daily commits.
-- **Cursor:** This is the IDE we will use (agent-mode)
-- **Grok-3:** Use for system design and getting a deep understanding of concepts

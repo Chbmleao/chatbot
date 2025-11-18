@@ -70,7 +70,7 @@ export default function ChatInterface() {
         {messages.length === 0 && (
           <div className="text-center text-zinc-500 dark:text-zinc-400 py-8">
             <p className="text-lg">Start a conversation!</p>
-            <p className="text-sm mt-2">Ask me anything and I'll respond using ChatGPT.</p>
+            <p className="text-sm mt-2">Ask me anything and I'll respond using AI.</p>
           </div>
         )}
         {messages.map((message, index) => (

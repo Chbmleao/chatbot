@@ -16,10 +16,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for OpenAI API key
+    // Check for Google API key
     if (!process.env.GOOGLE_API_KEY) {
       return NextResponse.json(
-        { error: "OpenAI API key is not configured" },
+        { error: "Google API key is not configured" },
         { status: 500 }
       );
     }
