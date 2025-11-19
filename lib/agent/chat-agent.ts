@@ -1,7 +1,6 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { StateGraph, END } from "@langchain/langgraph";
+import { StateGraph, END, START } from "@langchain/langgraph";
 import { MessagesAnnotation } from "@langchain/langgraph";
-import { HumanMessage } from "@langchain/core/messages";
 
 export function createChatAgent() {
   const model = new ChatGoogleGenerativeAI({  // Swap here
@@ -17,7 +16,7 @@ export function createChatAgent() {
 
   const workflow = new StateGraph(MessagesAnnotation)
     .addNode("chat", chatNode)
-    .addEdge("__start__", "chat")
+    .addEdge(START, "chat")
     .addEdge("chat", END);
 
   return workflow.compile();
