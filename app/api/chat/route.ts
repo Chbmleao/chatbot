@@ -5,6 +5,40 @@ import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
+function extractTextContent(content: unknown): string {
+  if (typeof content === "string") {
+    return content;
+  }
+  
+  if (Array.isArray(content)) {
+    const lastContent = content[content.length - 1];
+    return extractTextContent(lastContent);
+  }
+  
+  return String(content);
+}
+
+function isHumanMessage(msg: BaseMessage): msg is HumanMessage {
+  return msg instanceof HumanMessage;
+}
+
+function isAIMessage(msg: BaseMessage): msg is AIMessage {
+  return msg instanceof AIMessage;
+}
+
+function isMessage(msg: BaseMessage): msg is HumanMessage | AIMessage {
+  return isHumanMessage(msg) || (isAIMessage(msg) && typeof msg.content === "string");
+}
+
+function extractHistory(history: BaseMessage[]): { role: string; content: string }[] {
+  return history
+    .filter(isMessage)
+    .map((msg) => ({
+      role: isHumanMessage(msg) ? "user" : "assistant",
+      content: extractTextContent(msg.content),
+    }));
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { message, history } = await request.json();
@@ -44,14 +78,11 @@ export async function POST(request: NextRequest) {
 
     // Get the last AI message from the result
     const lastMessage = (result.messages as BaseMessage[])[(result.messages as BaseMessage[]).length - 1];
-    const response = lastMessage.content as string;
-
+    const response = extractTextContent(lastMessage.content);
+    
     return NextResponse.json({
       response,
-      history: (result.messages as BaseMessage[]).map((msg: BaseMessage) => ({
-        role: msg instanceof HumanMessage ? "user" : "assistant",
-        content: msg.content,
-      })),
+      history: extractHistory(result.messages as BaseMessage[]),
     });
   } catch (error) {
     console.error("Chat error:", error);
