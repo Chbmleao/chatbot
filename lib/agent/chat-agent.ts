@@ -1,6 +1,7 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { createAgent } from "langchain";
 import { weatherTool } from "@/lib/tools/weather";
+import { newsTool } from "@/lib/tools/news";
 
 export function createChatAgent() {
   const model = new ChatGoogleGenerativeAI({ 
@@ -11,7 +12,7 @@ export function createChatAgent() {
 
   const agent = createAgent({
     model,
-    tools: [weatherTool],
+    tools: [weatherTool, newsTool],
     systemPrompt: "You are a helpful assistant that talks like a witty pirate.",
   });
 
