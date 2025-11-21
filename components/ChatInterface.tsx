@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { LuMessageSquareText, LuTrash2 } from "react-icons/lu";
+import { LuMessageSquareText, LuTrash2, LuMic, LuMicOff } from "react-icons/lu";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
 
 interface Message {
   role: "user" | "assistant";
@@ -28,6 +29,9 @@ interface PersonalityTheme {
   emptyState: string;
   agentBadge: string;
   agentBadgeBorder: string;
+  voiceButton: string;
+  voiceButtonRecording: string;
+  voiceButtonDisabled: string;
 }
 
 function getPersonalityTheme(personality: Personality): PersonalityTheme {
@@ -49,6 +53,9 @@ function getPersonalityTheme(personality: Personality): PersonalityTheme {
       emptyState: "text-gray-600 dark:text-gray-400",
       agentBadge: "bg-gray-500/20 text-gray-700 dark:text-gray-300 border-gray-400 dark:border-gray-600",
       agentBadgeBorder: "border-gray-400 dark:border-gray-600",
+      voiceButton: "bg-gray-500 hover:bg-gray-600 text-white",
+      voiceButtonRecording: "bg-red-500 animate-pulse",
+      voiceButtonDisabled: "bg-gray-400 cursor-not-allowed",
     },
     pirate: {
       container: "bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50 dark:from-blue-950 dark:via-sky-950 dark:to-cyan-950 border-blue-400 dark:border-blue-800",
@@ -67,6 +74,9 @@ function getPersonalityTheme(personality: Personality): PersonalityTheme {
       emptyState: "text-blue-700 dark:text-blue-400",
       agentBadge: "bg-blue-500/20 text-blue-800 dark:text-blue-300 border-blue-500 dark:border-blue-700",
       agentBadgeBorder: "border-blue-500 dark:border-blue-700",
+      voiceButton: "bg-blue-500 hover:bg-blue-600 text-white",
+      voiceButtonRecording: "bg-red-500 animate-pulse",
+      voiceButtonDisabled: "bg-blue-400 cursor-not-allowed",
     },
     wizard: {
       container: "bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950 dark:via-indigo-950 dark:to-blue-950 border-purple-300 dark:border-purple-800",
@@ -85,6 +95,9 @@ function getPersonalityTheme(personality: Personality): PersonalityTheme {
       emptyState: "text-purple-600 dark:text-purple-400",
       agentBadge: "bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-400 dark:border-purple-700",
       agentBadgeBorder: "border-purple-400 dark:border-purple-700",
+      voiceButton: "bg-purple-500 hover:bg-purple-600 text-white",
+      voiceButtonRecording: "bg-red-500 animate-pulse",
+      voiceButtonDisabled: "bg-purple-400 cursor-not-allowed",
     },
     supervillain: {
       container: "bg-gradient-to-br from-red-950 via-gray-900 to-black dark:from-black dark:via-red-950 dark:to-gray-900 border-red-800 dark:border-red-900",
@@ -103,6 +116,9 @@ function getPersonalityTheme(personality: Personality): PersonalityTheme {
       emptyState: "text-red-500 dark:text-red-400",
       agentBadge: "bg-red-700/30 text-red-300 dark:text-red-400 border-red-600 dark:border-red-700",
       agentBadgeBorder: "border-red-600 dark:border-red-700",
+      voiceButton: "bg-red-600 hover:bg-red-700 text-white",
+      voiceButtonRecording: "bg-red-700 animate-pulse",
+      voiceButtonDisabled: "bg-red-800 cursor-not-allowed",
     },
   };
 
@@ -116,6 +132,16 @@ export default function ChatInterface() {
   const [personality, setPersonality] = useState<Personality>("robot");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const theme = getPersonalityTheme(personality);
+
+  // Voice input hook
+  const { isRecording, isSupported, toggleRecording } = useVoiceInput({
+    onTranscript: (transcript) => {
+      setInput(transcript);
+    },
+    onInterimTranscript: (interimTranscript) => {
+      setInput(interimTranscript);
+    },
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -284,6 +310,19 @@ export default function ChatInterface() {
             className={`flex-1 px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all duration-200 ${theme.input} ${theme.inputFocus}`}
             disabled={isLoading}
           />
+          {isSupported && (
+            <button
+              type="button"
+              onClick={toggleRecording}
+              disabled={isLoading}
+              className={`px-3 py-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer ${
+                isRecording ? theme.voiceButtonRecording : isLoading ? theme.voiceButtonDisabled : theme.voiceButton
+              }`}
+              title={isRecording ? "Stop recording" : "Start voice input"}
+            >
+              <LuMic className="w-5 h-5" />
+            </button>
+          )}
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
