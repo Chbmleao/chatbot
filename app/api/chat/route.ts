@@ -41,7 +41,7 @@ function extractHistory(history: BaseMessage[]): { role: string; content: string
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, history } = await request.json();
+    const { message, history, personality } = await request.json();
 
     if (!message || typeof message !== "string") {
       return NextResponse.json(
@@ -68,10 +68,17 @@ export async function POST(request: NextRequest) {
     // Add the current user message
     messages.push(new HumanMessage(message));
 
-    // Run the agent with the conversation history
-    const result = await agent.invoke({
-      messages,
-    });
+    // Run the agent with the conversation history and personality
+    const result = await agent.invoke(
+      {
+        messages,
+      },
+      {
+        configurable: {
+          personality: personality || "robot",
+        },
+      }
+    );
 
     // Get the last AI message from the result
     const lastMessage = (result.messages as BaseMessage[])[(result.messages as BaseMessage[]).length - 1];

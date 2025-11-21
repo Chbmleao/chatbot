@@ -12,6 +12,7 @@ export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [personality, setPersonality] = useState("robot");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -37,6 +38,7 @@ export default function ChatInterface() {
         body: JSON.stringify({
           message: message,
           history: messages,
+          personality: personality,
         }),
       });
 
@@ -82,26 +84,41 @@ export default function ChatInterface() {
   return (
     <div className="flex flex-col h-full max-h-[600px] w-full max-w-2xl mx-auto bg-white dark:bg-zinc-900 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-800">
       {/* Header with buttons */}
-      {messages.length > 0 && (
-        <div className="flex justify-end p-3 border-b border-zinc-200 dark:border-zinc-800">
-          <button
-            onClick={handleClearChat}
-            disabled={isLoading}
-            className="px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
-          >
-            <LuTrash2 />
-            <span>Clear Chat</span>
-          </button>
-          <button
-            onClick={handleSummarizeChat}
-            disabled={isLoading}
-            className="px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
-          >
-            <LuMessageSquareText />
-            <span>Summarize Chat</span>
-          </button>
-        </div>
-      )}
+      <div className="flex items-center justify-between gap-3 p-3 border-b border-zinc-200 dark:border-zinc-800">
+        {/* Dropdown to select model personality */}
+        <select
+          className="px-3 py-1.5 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          value={personality}
+          onChange={(e) => setPersonality(e.target.value)}
+          disabled={isLoading}
+        >
+          <option value="robot">Robot 🤖</option>
+          <option value="pirate">Pirate 🏴‍☠️</option>
+          <option value="wizard">Wizard 🧙‍♂️</option>
+          <option value="supervillain">Supervillain 🦹‍♂️</option>
+        </select>
+
+        {messages.length > 0 && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleClearChat}
+              disabled={isLoading}
+              className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer border border-transparent hover:border-zinc-300 dark:hover:border-zinc-700"
+            >
+              <LuTrash2 className="w-4 h-4" />
+              <span>Clear Chat</span>
+            </button>
+            <button
+              onClick={handleSummarizeChat}
+              disabled={isLoading}
+              className="px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer border border-transparent hover:border-zinc-300 dark:hover:border-zinc-700"
+            >
+              <LuMessageSquareText className="w-4 h-4" />
+              <span>Summarize Chat</span>
+            </button>
+          </div>
+        )}
+      </div>
       {/* Messages container */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (

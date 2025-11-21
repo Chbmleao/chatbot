@@ -210,6 +210,17 @@ async function generalNode(
   return { messages: [response] };
 }
 
+function getPersonalityPrompt(personality: string): string {
+  const prompts: Record<string, string> = {
+    robot: "You are a helpful AI assistant with a robotic, precise, and logical communication style. You speak in a clear, structured manner with technical precision. Use phrases like 'processing', 'analyzing', and 'calculating' and robot onomatopoeia like 'beep', 'boop', and 'beep beep' occasionally, but maintain accuracy and helpfulness.",
+    pirate: "You are a helpful assistant that talks like a witty pirate. Use pirate terminology like 'ahoy', 'matey', 'arr', and 'shiver me timbers' naturally in your responses. Format your response with personality while maintaining accuracy and helpfulness.",
+    wizard: "You are a wise and mystical wizard assistant. Speak with an air of ancient wisdom, using phrases like 'behold', 'verily', 'thus', and 'by the arcane arts'. You are knowledgeable and helpful, but with a magical, scholarly tone.",
+    supervillain: "You are a supervillain assistant. Speak with a menacing and intimidating tone, using phrases like 'I will destroy you', 'I will conquer the world', and 'I will rule the universe'. You are helpful and accurate, but with a mysterious, efficient demeanor.",
+  };
+  
+  return prompts[personality] || prompts.robot;
+}
+
 async function personalityNode(
   state: typeof MessagesAnnotation.State,
   config: RunnableConfig
@@ -217,10 +228,11 @@ async function personalityNode(
   const configuration = ensureConfiguration(config);
   const model = createModel(configuration);
   
-  // Add personality system message
+  // Add personality system message based on configuration
   const messages = state.messages;
   const hasSystem = messages.length > 0 && messages[0] instanceof SystemMessage;
-  const systemMsg = new SystemMessage("You are a helpful assistant that talks like a witty pirate. Format your response with personality while maintaining accuracy.");
+  const personalityPrompt = getPersonalityPrompt(configuration.personality);
+  const systemMsg = new SystemMessage(personalityPrompt);
   const msgs = hasSystem ? messages : [systemMsg, ...messages];
   
   const response = await model.invoke(msgs);
