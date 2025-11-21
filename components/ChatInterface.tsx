@@ -55,9 +55,11 @@ export default function ChatInterface() {
   const handleSummarizeChat = async () => {
     const userMessage: Message = { role: "user", content: "Summarize the conversation so far." };
     setIsLoading(true);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
 
     const response = await getChatResponse(userMessage.content);
-    setMessages([...messages, userMessage, { role: "assistant", content: response }]);
+    setMessages([...newMessages, { role: "assistant", content: response }]);
     setIsLoading(false);
   }
 
