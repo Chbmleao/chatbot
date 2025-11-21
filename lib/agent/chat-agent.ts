@@ -75,21 +75,24 @@ function extractTextContent(content: unknown): string {
   return String(content);
 }
 
-function routeCategoryToNode(
-  state: typeof MessagesAnnotation.State,
-): string {
+function routeCategoryToNodes(state: typeof MessagesAnnotation.State): string[] {
   const lastMessage = state.messages[state.messages.length - 1];
+
   if (!(lastMessage instanceof AIMessage)) {
-    return "general";
+    return ["general"];
   }
-  
+
   const contentText = extractTextContent(lastMessage.content);
-  const categories = contentText.split(",").map(c => c.trim().toLowerCase());
-  
-  // Return the first matching category for routing
-  if (categories.includes("weather")) return "weather";
-  if (categories.includes("news")) return "news";
-  return "general";
+  const categories = contentText
+    .split(",")
+    .map(c => c.trim().toLowerCase());
+
+  const routes = [];
+  if (categories.includes("weather")) routes.push("weather");
+  if (categories.includes("news")) routes.push("news");
+  if (routes.length === 0) routes.push("general");
+
+  return routes;
 }
 
 async function weatherNode(
@@ -229,16 +232,22 @@ const workflow = new StateGraph(MessagesAnnotation)
   .addNode("weather", weatherNode)
   .addNode("news", newsNode)
   .addNode("general", generalNode)
+  .addNode("merge", async (state) => state)
   .addNode("personality", personalityNode)
+
   .addEdge(START, "router")
-  .addConditionalEdges("router", routeCategoryToNode, {
+
+  .addConditionalEdges("router", routeCategoryToNodes, {
     weather: "weather",
     news: "news",
     general: "general",
   })
-  .addEdge("weather", "personality")
-  .addEdge("news", "personality")
-  .addEdge("general", "personality")  
+
+  .addEdge("weather", "merge")
+  .addEdge("news", "merge")
+  .addEdge("general", "merge")
+
+  .addEdge("merge", "personality")
   .addEdge("personality", END);
 
 export const agent = workflow.compile();
