@@ -6,6 +6,7 @@ import { LuMessageSquareText, LuTrash2 } from "react-icons/lu";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  agents?: string[];
 }
 
 type Personality = "robot" | "pirate" | "wizard" | "supervillain";
@@ -25,6 +26,8 @@ interface PersonalityTheme {
   sendButtonHover: string;
   loadingDots: string;
   emptyState: string;
+  agentBadge: string;
+  agentBadgeBorder: string;
 }
 
 function getPersonalityTheme(personality: Personality): PersonalityTheme {
@@ -44,6 +47,8 @@ function getPersonalityTheme(personality: Personality): PersonalityTheme {
       sendButtonHover: "hover:bg-gray-700",
       loadingDots: "bg-gray-500",
       emptyState: "text-gray-600 dark:text-gray-400",
+      agentBadge: "bg-gray-500/20 text-gray-700 dark:text-gray-300 border-gray-400 dark:border-gray-600",
+      agentBadgeBorder: "border-gray-400 dark:border-gray-600",
     },
     pirate: {
       container: "bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50 dark:from-blue-950 dark:via-sky-950 dark:to-cyan-950 border-blue-400 dark:border-blue-800",
@@ -60,6 +65,8 @@ function getPersonalityTheme(personality: Personality): PersonalityTheme {
       sendButtonHover: "hover:bg-blue-700",
       loadingDots: "bg-blue-500",
       emptyState: "text-blue-700 dark:text-blue-400",
+      agentBadge: "bg-blue-500/20 text-blue-800 dark:text-blue-300 border-blue-500 dark:border-blue-700",
+      agentBadgeBorder: "border-blue-500 dark:border-blue-700",
     },
     wizard: {
       container: "bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950 dark:via-indigo-950 dark:to-blue-950 border-purple-300 dark:border-purple-800",
@@ -76,6 +83,8 @@ function getPersonalityTheme(personality: Personality): PersonalityTheme {
       sendButtonHover: "hover:bg-purple-700",
       loadingDots: "bg-purple-400",
       emptyState: "text-purple-600 dark:text-purple-400",
+      agentBadge: "bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-400 dark:border-purple-700",
+      agentBadgeBorder: "border-purple-400 dark:border-purple-700",
     },
     supervillain: {
       container: "bg-gradient-to-br from-red-950 via-gray-900 to-black dark:from-black dark:via-red-950 dark:to-gray-900 border-red-800 dark:border-red-900",
@@ -92,6 +101,8 @@ function getPersonalityTheme(personality: Personality): PersonalityTheme {
       sendButtonHover: "hover:bg-red-800",
       loadingDots: "bg-red-500",
       emptyState: "text-red-500 dark:text-red-400",
+      agentBadge: "bg-red-700/30 text-red-300 dark:text-red-400 border-red-600 dark:border-red-700",
+      agentBadgeBorder: "border-red-600 dark:border-red-700",
     },
   };
 
@@ -138,10 +149,10 @@ export default function ChatInterface() {
       }
 
       const data = await response.json();
-      return data.response;
+      return { response: data.response, agents: data.agents || [] };
     } catch (error) {
       console.error("Error:", error);
-      return "Sorry, I encountered an error. Please try again.";
+      return { response: "Sorry, I encountered an error. Please try again.", agents: [] };
     }
   }
 
@@ -151,8 +162,8 @@ export default function ChatInterface() {
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
 
-    const response = await getChatResponse(userMessage.content);
-    setMessages([...newMessages, { role: "assistant", content: response }]);
+    const result = await getChatResponse(userMessage.content);
+    setMessages([...newMessages, { role: "assistant", content: result.response, agents: result.agents }]);
     setIsLoading(false);
   }
 
@@ -166,8 +177,8 @@ export default function ChatInterface() {
     setInput("");
     setIsLoading(true);
 
-    const response = await getChatResponse(input);
-    setMessages([...newMessages, { role: "assistant", content: response }]);
+    const result = await getChatResponse(input);
+    setMessages([...newMessages, { role: "assistant", content: result.response, agents: result.agents }]);
 
     setIsLoading(false);
   };
@@ -233,6 +244,18 @@ export default function ChatInterface() {
               }`}
             >
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              {message.role === "assistant" && message.agents && message.agents.length > 0 && (
+                <div className={`flex flex-wrap gap-1.5 mt-2 pt-2 border-t ${theme.agentBadgeBorder}`}>
+                  {message.agents.map((agent, agentIndex) => (
+                    <span
+                      key={agentIndex}
+                      className={`text-xs px-2 py-0.5 rounded-full border ${theme.agentBadge} font-medium capitalize`}
+                    >
+                      {agent}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ))}

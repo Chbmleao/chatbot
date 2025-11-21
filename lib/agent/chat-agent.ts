@@ -1,4 +1,4 @@
-import { StateGraph, END, START } from "@langchain/langgraph";
+import { StateGraph, END, START, Annotation } from "@langchain/langgraph";
 import { MessagesAnnotation } from "@langchain/langgraph";
 import { RunnableConfig } from "@langchain/core/runnables";
 import { AIMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
@@ -7,6 +7,36 @@ import { ConfigurationSchema, ensureConfiguration } from "./configuration";
 
 import { weatherTool } from "@/lib/tools/weather";
 import { newsTool } from "@/lib/tools/news";
+
+// Custom state annotation that extends MessagesAnnotation with executedNodes tracking
+// Use a reducer that concatenates arrays to handle concurrent node updates
+const ChatStateAnnotation = Annotation.Root({
+  ...MessagesAnnotation.spec,
+  executedNodes: Annotation<string[]>({
+    reducer: (x: string[] | undefined, y: string[] | string[][]) => {
+      // x is the current state, y is the update(s) from node(s)
+      const current = x || [];
+      
+      // When multiple nodes update concurrently, y is an array of arrays
+      // When a single node updates, y is a single array
+      let updates: string[];
+      if (Array.isArray(y) && y.length > 0) {
+        if (Array.isArray(y[0])) {
+          // Concurrent updates: y is [[...], [...]]
+          updates = (y as string[][]).flat();
+        } else {
+          // Single update: y is [...]
+          updates = y as string[];
+        }
+      } else {
+        updates = [];
+      }
+      
+      // Concatenate and deduplicate
+      return Array.from(new Set([...current, ...updates]));
+    },
+  }),
+});
 
 function createModel(config: ReturnType<typeof ensureConfiguration>) {
   let modelName = config.model;
@@ -22,9 +52,9 @@ function createModel(config: ReturnType<typeof ensureConfiguration>) {
 }
 
 async function processNode(
-  state: typeof MessagesAnnotation.State,
+  state: typeof ChatStateAnnotation.State,
   config: RunnableConfig
-): Promise<typeof MessagesAnnotation.State> {
+): Promise<typeof ChatStateAnnotation.State> {
   const configuration = ensureConfiguration(config);
   const model = createModel(configuration);
   
@@ -36,13 +66,17 @@ async function processNode(
     : [new SystemMessage("You are a helpful assistant."), ...messages];
   
   const response = await model.invoke(msgs);
-  return { messages: [response] };
+  const executedNodes = state.executedNodes || [];
+  return { 
+    messages: [response],
+    executedNodes
+  };
 }
 
 async function routerNode(
-  state: typeof MessagesAnnotation.State,
+  state: typeof ChatStateAnnotation.State,
   config: RunnableConfig
-): Promise<typeof MessagesAnnotation.State> {
+): Promise<typeof ChatStateAnnotation.State> {
   const configuration = ensureConfiguration(config);
   const model = createModel(configuration);
   
@@ -61,7 +95,11 @@ async function routerNode(
   const msgs = hasSystem ? messages : [systemMsg, ...messages];
   
   const response = await model.invoke(msgs);
-  return { messages: [response] };
+  const executedNodes = state.executedNodes || [];
+  return { 
+    messages: [response],
+    executedNodes
+  };
 }
 
 function extractTextContent(content: unknown): string {
@@ -75,7 +113,7 @@ function extractTextContent(content: unknown): string {
   return String(content);
 }
 
-function routeCategoryToNodes(state: typeof MessagesAnnotation.State): string[] {
+function routeCategoryToNodes(state: typeof ChatStateAnnotation.State): string[] {
   const lastMessage = state.messages[state.messages.length - 1];
 
   if (!(lastMessage instanceof AIMessage)) {
@@ -96,9 +134,9 @@ function routeCategoryToNodes(state: typeof MessagesAnnotation.State): string[] 
 }
 
 async function weatherNode(
-  state: typeof MessagesAnnotation.State,
+  state: typeof ChatStateAnnotation.State,
   config: RunnableConfig
-): Promise<typeof MessagesAnnotation.State> {
+): Promise<typeof ChatStateAnnotation.State> {
   const configuration = ensureConfiguration(config);
   const model = createModel(configuration);
   const modelWithTools = model.bindTools([weatherTool]);
@@ -138,13 +176,17 @@ async function weatherNode(
     responseMessages.push(finalResponse);
   }
   
-  return { messages: responseMessages };
+  const executedNodes = state.executedNodes || [];
+  return { 
+    messages: responseMessages,
+    executedNodes: [...executedNodes, "weather"]
+  };
 }
 
 async function newsNode(
-  state: typeof MessagesAnnotation.State,
+  state: typeof ChatStateAnnotation.State,
   config: RunnableConfig
-): Promise<typeof MessagesAnnotation.State> {
+): Promise<typeof ChatStateAnnotation.State> {
   const configuration = ensureConfiguration(config);
   const model = createModel(configuration);
   const modelWithTools = model.bindTools([newsTool]);
@@ -189,13 +231,17 @@ async function newsNode(
     responseMessages.push(finalResponse);
   }
   
-  return { messages: responseMessages };
+  const executedNodes = state.executedNodes || [];
+  return { 
+    messages: responseMessages,
+    executedNodes: [...executedNodes, "news"]
+  };
 }
 
 async function generalNode(
-  state: typeof MessagesAnnotation.State,
+  state: typeof ChatStateAnnotation.State,
   config: RunnableConfig
-): Promise<typeof MessagesAnnotation.State> {
+): Promise<typeof ChatStateAnnotation.State> {
   const configuration = ensureConfiguration(config);
   const model = createModel(configuration);
   
@@ -207,7 +253,11 @@ async function generalNode(
     : [new SystemMessage("You are a helpful assistant."), ...messages];
   
   const response = await model.invoke(msgs);
-  return { messages: [response] };
+  const executedNodes = state.executedNodes || [];
+  return { 
+    messages: [response],
+    executedNodes: [...executedNodes, "general"]
+  };
 }
 
 function getPersonalityPrompt(personality: string): string {
@@ -222,9 +272,9 @@ function getPersonalityPrompt(personality: string): string {
 }
 
 async function personalityNode(
-  state: typeof MessagesAnnotation.State,
+  state: typeof ChatStateAnnotation.State,
   config: RunnableConfig
-): Promise<typeof MessagesAnnotation.State> {
+): Promise<typeof ChatStateAnnotation.State> {
   const configuration = ensureConfiguration(config);
   const model = createModel(configuration);
   
@@ -236,10 +286,14 @@ async function personalityNode(
   const msgs = hasSystem ? messages : [systemMsg, ...messages];
   
   const response = await model.invoke(msgs);
-  return { messages: [response] };
+  const executedNodes = state.executedNodes || [];
+  return { 
+    messages: [response],
+    executedNodes: [...executedNodes, "personality"]
+  };
 }
 
-const workflow = new StateGraph(MessagesAnnotation)
+const workflow = new StateGraph(ChatStateAnnotation)
   .addNode("router", routerNode)
   .addNode("weather", weatherNode)
   .addNode("news", newsNode)

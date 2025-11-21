@@ -84,9 +84,16 @@ export async function POST(request: NextRequest) {
     const lastMessage = (result.messages as BaseMessage[])[(result.messages as BaseMessage[]).length - 1];
     const response = extractTextContent(lastMessage.content);
 
+    // Extract executed nodes and filter to only include agent nodes (exclude infrastructure nodes)
+    const executedNodes = (result as { executedNodes?: string[] }).executedNodes || [];
+    const agentNodes = ["weather", "news", "general", "personality"];
+    const agents = executedNodes.filter(node => agentNodes.includes(node));
+
+    console.log("Executed nodes:", executedNodes);
     return NextResponse.json({
       response,
       history: extractHistory([...messages, lastMessage]),
+      agents,
     });
   } catch (error) {
     console.error("Chat error:", error);
