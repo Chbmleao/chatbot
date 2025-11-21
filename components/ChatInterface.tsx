@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { LuMessageSquareText, LuTrash2, LuMic, LuMicOff } from "react-icons/lu";
+import { LuMessageSquareText, LuTrash2, LuMic, LuMicOff, LuVolume2, LuVolumeX } from "react-icons/lu";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
+import { useAudioOutput } from "@/hooks/useAudioOutput";
 
 interface Message {
   role: "user" | "assistant";
@@ -32,6 +33,8 @@ interface PersonalityTheme {
   voiceButton: string;
   voiceButtonRecording: string;
   voiceButtonDisabled: string;
+  audioButton: string;
+  audioButtonPlaying: string;
 }
 
 function getPersonalityTheme(personality: Personality): PersonalityTheme {
@@ -56,6 +59,8 @@ function getPersonalityTheme(personality: Personality): PersonalityTheme {
       voiceButton: "bg-gray-500 hover:bg-gray-600 text-white",
       voiceButtonRecording: "bg-red-500 animate-pulse",
       voiceButtonDisabled: "bg-gray-400 cursor-not-allowed",
+      audioButton: "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50",
+      audioButtonPlaying: "text-gray-800 dark:text-gray-200 bg-gray-200/50 dark:bg-gray-700/50 animate-pulse",
     },
     pirate: {
       container: "bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50 dark:from-blue-950 dark:via-sky-950 dark:to-cyan-950 border-blue-400 dark:border-blue-800",
@@ -77,6 +82,8 @@ function getPersonalityTheme(personality: Personality): PersonalityTheme {
       voiceButton: "bg-blue-500 hover:bg-blue-600 text-white",
       voiceButtonRecording: "bg-red-500 animate-pulse",
       voiceButtonDisabled: "bg-blue-400 cursor-not-allowed",
+      audioButton: "text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:bg-blue-200/50 dark:hover:bg-blue-800/50",
+      audioButtonPlaying: "text-blue-800 dark:text-blue-200 bg-blue-200/50 dark:bg-blue-800/50 animate-pulse",
     },
     wizard: {
       container: "bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950 dark:via-indigo-950 dark:to-blue-950 border-purple-300 dark:border-purple-800",
@@ -98,6 +105,8 @@ function getPersonalityTheme(personality: Personality): PersonalityTheme {
       voiceButton: "bg-purple-500 hover:bg-purple-600 text-white",
       voiceButtonRecording: "bg-red-500 animate-pulse",
       voiceButtonDisabled: "bg-purple-400 cursor-not-allowed",
+      audioButton: "text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200 hover:bg-purple-200/50 dark:hover:bg-purple-800/50",
+      audioButtonPlaying: "text-purple-800 dark:text-purple-200 bg-purple-200/50 dark:bg-purple-800/50 animate-pulse",
     },
     supervillain: {
       container: "bg-gradient-to-br from-red-950 via-gray-900 to-black dark:from-black dark:via-red-950 dark:to-gray-900 border-red-800 dark:border-red-900",
@@ -119,6 +128,8 @@ function getPersonalityTheme(personality: Personality): PersonalityTheme {
       voiceButton: "bg-red-600 hover:bg-red-700 text-white",
       voiceButtonRecording: "bg-red-700 animate-pulse",
       voiceButtonDisabled: "bg-red-800 cursor-not-allowed",
+      audioButton: "text-red-400 dark:text-red-500 hover:text-red-300 dark:hover:text-red-400 hover:bg-red-900/30 dark:hover:bg-red-950/50",
+      audioButtonPlaying: "text-red-300 dark:text-red-400 bg-red-900/30 dark:bg-red-950/50 animate-pulse",
     },
   };
 
@@ -142,6 +153,9 @@ export default function ChatInterface() {
       setInput(interimTranscript);
     },
   });
+
+  // Audio output hook
+  const { isPlaying, currentId, toggle: toggleAudio } = useAudioOutput<number>();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -269,7 +283,26 @@ export default function ChatInterface() {
                   : theme.assistantMessage
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm whitespace-pre-wrap flex-1">{message.content}</p>
+                {message.role === "assistant" && (
+                  <button
+                    onClick={() => toggleAudio(index, message.content)}
+                    className={`p-1.5 rounded transition-all duration-200 flex-shrink-0 cursor-pointer ${
+                      isPlaying && currentId === index
+                        ? theme.audioButtonPlaying
+                        : theme.audioButton
+                    }`}
+                    title={isPlaying && currentId === index ? "Stop audio" : "Play audio"}
+                  >
+                    {isPlaying && currentId === index ? (
+                      <LuVolumeX className="w-4 h-4" />
+                    ) : (
+                      <LuVolume2 className="w-4 h-4" />
+                    )}
+                  </button>
+                )}
+              </div>
               {message.role === "assistant" && message.agents && message.agents.length > 0 && (
                 <div className={`flex flex-wrap gap-1.5 mt-2 pt-2 border-t ${theme.agentBadgeBorder}`}>
                   {message.agents.map((agent, agentIndex) => (
