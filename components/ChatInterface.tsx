@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { LuMessageSquareText, LuTrash2 } from "react-icons/lu";
 
 interface Message {
   role: "user" | "assistant";
@@ -21,6 +22,45 @@ export default function ChatInterface() {
     scrollToBottom();
   }, [messages]);
 
+  const handleClearChat = () => {
+    setMessages([]);
+    setInput("");
+  };
+
+  const getChatResponse = async (message: string) => {
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: message,
+          history: messages,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get response");
+      }
+
+      const data = await response.json();
+      return data.response;
+    } catch (error) {
+      console.error("Error:", error);
+      return "Sorry, I encountered an error. Please try again.";
+    }
+  }
+
+  const handleSummarizeChat = async () => {
+    const userMessage: Message = { role: "user", content: "Summarize the conversation so far." };
+    setIsLoading(true);
+
+    const response = await getChatResponse(userMessage.content);
+    setMessages([...messages, userMessage, { role: "assistant", content: response }]);
+    setIsLoading(false);
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -31,40 +71,35 @@ export default function ChatInterface() {
     setInput("");
     setIsLoading(true);
 
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: input,
-          history: messages,
-        }),
-      });
+    const response = await getChatResponse(input);
+    setMessages([...newMessages, { role: "assistant", content: response }]);
 
-      if (!response.ok) {
-        throw new Error("Failed to get response");
-      }
-
-      const data = await response.json();
-      setMessages(data.history);
-    } catch (error) {
-      console.error("Error:", error);
-      setMessages([
-        ...newMessages,
-        {
-          role: "assistant",
-          content: "Sorry, I encountered an error. Please try again.",
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
+    setIsLoading(false);
   };
 
   return (
     <div className="flex flex-col h-full max-h-[600px] w-full max-w-2xl mx-auto bg-white dark:bg-zinc-900 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-800">
+      {/* Header with buttons */}
+      {messages.length > 0 && (
+        <div className="flex justify-end p-3 border-b border-zinc-200 dark:border-zinc-800">
+          <button
+            onClick={handleClearChat}
+            disabled={isLoading}
+            className="px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+          >
+            <LuTrash2 />
+            <span>Clear Chat</span>
+          </button>
+          <button
+            onClick={handleSummarizeChat}
+            disabled={isLoading}
+            className="px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+          >
+            <LuMessageSquareText />
+            <span>Summarize Chat</span>
+          </button>
+        </div>
+      )}
       {/* Messages container */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
@@ -119,7 +154,7 @@ export default function ChatInterface() {
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             Send
           </button>

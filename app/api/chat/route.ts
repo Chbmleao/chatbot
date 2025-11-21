@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createChatAgent } from "@/lib/agent/chat-agent";
+import { agent } from "@/lib/agent/chat-agent";
 import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
 
 export const runtime = "nodejs";
@@ -50,16 +50,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for Google API key
-    if (!process.env.GOOGLE_API_KEY) {
+    // Check for OpenAI API key
+    if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
-        { error: "Google API key is not configured" },
+        { error: "OpenAI API key is not configured" },
         { status: 500 }
       );
     }
-
-    // Create the agent
-    const agent = createChatAgent();
 
     // Convert history to LangChain messages
     const messages = (history || []).map((msg: { role: string; content: string }) => {
@@ -79,10 +76,10 @@ export async function POST(request: NextRequest) {
     // Get the last AI message from the result
     const lastMessage = (result.messages as BaseMessage[])[(result.messages as BaseMessage[]).length - 1];
     const response = extractTextContent(lastMessage.content);
-    
+
     return NextResponse.json({
       response,
-      history: extractHistory(result.messages as BaseMessage[]),
+      history: extractHistory([...messages, lastMessage]),
     });
   } catch (error) {
     console.error("Chat error:", error);
